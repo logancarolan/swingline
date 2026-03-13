@@ -1,4 +1,5 @@
 import { PDFDocument, PDFFont, rgb, StandardFonts } from "pdf-lib";
+import fontkit from "@pdf-lib/fontkit";
 import { AGGREGATE_REPORTS } from "@/lib/extractFrpSections";
 import type { FrpPageInfo } from "@/lib/extractFrpSections";
 
@@ -24,6 +25,12 @@ interface TocEntry {
   reportTitle: string;
   portfolioName: string;
   page: number;
+}
+
+/** Optional custom font bytes for the TOC. */
+export interface CustomFonts {
+  georgiaRegular?: Uint8Array;
+  neueHaasGroteskBold?: Uint8Array;
 }
 
 // ─── colours (matched to the ArchBridge TOC example) ───────────────────────
@@ -77,12 +84,22 @@ export async function buildPerformanceBook(
   metadata: BookMetadata,
   frpData?: Map<number, SectionFrpData>,
   logoBytes?: Uint8Array,
+  customFonts?: CustomFonts,
 ): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
+  doc.registerFontkit(fontkit);
 
   const fontBold    = await doc.embedFont(StandardFonts.HelveticaBold);
   const fontRegular = await doc.embedFont(StandardFonts.Helvetica);
   const fontOblique = await doc.embedFont(StandardFonts.HelveticaOblique);
+
+  // Custom fonts for TOC (fall back to standard fonts if not provided)
+  const fontGeorgia = customFonts?.georgiaRegular
+    ? await doc.embedFont(customFonts.georgiaRegular)
+    : await doc.embedFont(StandardFonts.TimesRoman);
+  const fontNeueHaas = customFonts?.neueHaasGroteskBold
+    ? await doc.embedFont(customFonts.neueHaasGroteskBold)
+    : fontBold;
 
   // Embed logo PNG if provided
   const logoImage = logoBytes ? await doc.embedPng(logoBytes) : null;
@@ -150,7 +167,8 @@ export async function buildPerformanceBook(
   doc.addPage(coverPage);
 
   // 2. TOC pages
-  buildTocPages(doc, metadata, tocEntries, fontBold, fontRegular, fontOblique);
+  const numTocPagesActual = tocPageCount(tocEntries.length);
+  buildTocPages(doc, metadata, tocEntries, fontBold, fontRegular, fontOblique, fontGeorgia, fontNeueHaas);
 
   // 3. Section content in display order
   for (let i = 0; i < sections.length; i++) {
@@ -190,10 +208,11 @@ export async function buildPerformanceBook(
     }
   }
 
-  // 4. Stamp footer on all pages except the cover (index 0).
+  // 4. Stamp footer on all pages except the cover (index 0) and TOC pages.
   //    Footer layout: [Logo far-left] ... [ArchBridge Family Office  PageNum]
+  const tocEndIndex = 1 + numTocPagesActual; // cover(0) + TOC pages
   const totalPages = doc.getPageCount();
-  for (let i = 1; i < totalPages; i++) {
+  for (let i = tocEndIndex; i < totalPages; i++) {
     const pg = doc.getPage(i);
     const { width } = pg.getSize();
     const pageNum = String(i + 1);
@@ -244,6 +263,8 @@ function buildTocPages(
   fontBold: PDFFont,
   fontRegular: PDFFont,
   fontOblique: PDFFont,
+  fontGeorgia: PDFFont,
+  fontNeueHaas: PDFFont,
 ): void {
   const MAX_REPORT_W    = COL_PORTFOLIO - COL_REPORT    - 8;
   const MAX_PORTFOLIO_W = COL_PAGE_R    - COL_PORTFOLIO - 40;
@@ -257,20 +278,20 @@ function buildTocPages(
     // ── title & date (every TOC page) ────────────────────────────────────
     page.drawText("Table of Contents", {
       x: MARGIN, y: PAGE_H - 70,
-      size: 26, font: fontBold, color: BLUE,
+      size: 26, font: fontNeueHaas, color: BLUE,
     });
     page.drawText(metadata.periodDate, {
       x: MARGIN, y: PAGE_H - 98,
-      size: 13, font: fontOblique, color: BLUE,
+      size: 13, font: fontGeorgia, color: NAVY,
     });
 
     // ── table header ──────────────────────────────────────────────────────
     const headerY = TABLE_TOP - 18;
-    page.drawText("Section",   { x: COL_SECTION,   y: headerY, size: 11, font: fontBold, color: BLUE });
-    page.drawText("Report",    { x: COL_REPORT,     y: headerY, size: 11, font: fontBold, color: BLUE });
-    page.drawText("Portfolio", { x: COL_PORTFOLIO,  y: headerY, size: 11, font: fontBold, color: BLUE });
-    const pageHeaderW = fontBold.widthOfTextAtSize("Page", 11);
-    page.drawText("Page", { x: COL_PAGE_R - pageHeaderW, y: headerY, size: 11, font: fontBold, color: BLUE });
+    page.drawText("Section",   { x: COL_SECTION,   y: headerY, size: 11, font: fontNeueHaas, color: NAVY });
+    page.drawText("Report",    { x: COL_REPORT,     y: headerY, size: 11, font: fontNeueHaas, color: NAVY });
+    page.drawText("Portfolio", { x: COL_PORTFOLIO,  y: headerY, size: 11, font: fontNeueHaas, color: NAVY });
+    const pageHeaderW = fontNeueHaas.widthOfTextAtSize("Page", 11);
+    page.drawText("Page", { x: COL_PAGE_R - pageHeaderW, y: headerY, size: 11, font: fontNeueHaas, color: NAVY });
 
     page.drawLine({
       start: { x: MARGIN, y: TABLE_TOP - 28 },
@@ -306,11 +327,11 @@ function buildTocPages(
     const page = doc.addPage([PAGE_W, PAGE_H]);
     page.drawText("Table of Contents", {
       x: MARGIN, y: PAGE_H - 70,
-      size: 26, font: fontBold, color: BLUE,
+      size: 26, font: fontNeueHaas, color: BLUE,
     });
     page.drawText(metadata.periodDate, {
       x: MARGIN, y: PAGE_H - 98,
-      size: 13, font: fontOblique, color: BLUE,
+      size: 13, font: fontGeorgia, color: NAVY,
     });
   }
 }

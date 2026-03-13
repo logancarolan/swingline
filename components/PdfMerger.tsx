@@ -17,7 +17,7 @@ import {
   rectSortingStrategy,
 } from "@dnd-kit/sortable";
 import { buildPerformanceBook } from "@/lib/mergePdfs";
-import type { SectionFrpData } from "@/lib/mergePdfs";
+import type { SectionFrpData, CustomFonts } from "@/lib/mergePdfs";
 import { extractFrpPageInfo, groupFrpSections } from "@/lib/extractFrpSections";
 import type { FrpPageInfo, FrpSection } from "@/lib/extractFrpSections";
 import PdfCard from "@/components/PdfCard";
@@ -290,12 +290,24 @@ export default function PdfMerger() {
       const logoRes = await fetch("/ARCH_ID_2C.png");
       const logoBytes = new Uint8Array(await logoRes.arrayBuffer());
 
+      // Fetch custom fonts (optional — falls back to standard fonts if missing)
+      const customFonts: CustomFonts = {};
+      try {
+        const georgiaRes = await fetch("/fonts/Georgia.ttf");
+        if (georgiaRes.ok) customFonts.georgiaRegular = new Uint8Array(await georgiaRes.arrayBuffer());
+      } catch { /* fall back to TimesRoman */ }
+      try {
+        const nhgRes = await fetch("/fonts/NeueHaasGrotesk-Bold.ttf");
+        if (nhgRes.ok) customFonts.neueHaasGroteskBold = new Uint8Array(await nhgRes.arrayBuffer());
+      } catch { /* fall back to HelveticaBold */ }
+
       const bytes = await buildPerformanceBook(
         pdfFiles.map((f) => ({ file: f.file, name: f.sectionName })),
         coverIndex,
         { clientName: clientName.trim(), periodDate: formatPeriodDate(periodDateRaw) },
         frpData.size > 0 ? frpData : undefined,
         logoBytes,
+        customFonts,
       );
       const buf  = new ArrayBuffer(bytes.byteLength);
       new Uint8Array(buf).set(bytes);
