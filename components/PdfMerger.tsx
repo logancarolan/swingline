@@ -293,11 +293,11 @@ export default function PdfMerger() {
       // Fetch custom fonts (optional — falls back to standard fonts if missing)
       const customFonts: CustomFonts = {};
       try {
-        const georgiaRes = await fetch("/fonts/Georgia.ttf");
+        const georgiaRes = await fetch("/georgia.ttf");
         if (georgiaRes.ok) customFonts.georgiaRegular = new Uint8Array(await georgiaRes.arrayBuffer());
       } catch { /* fall back to TimesRoman */ }
       try {
-        const nhgRes = await fetch("/fonts/NeueHaasGrotesk-Bold.ttf");
+        const nhgRes = await fetch("/NeueHaasDisplayBold.ttf");
         if (nhgRes.ok) customFonts.neueHaasGroteskBold = new Uint8Array(await nhgRes.arrayBuffer());
       } catch { /* fall back to HelveticaBold */ }
 
