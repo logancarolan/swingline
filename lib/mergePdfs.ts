@@ -232,7 +232,7 @@ export async function buildPerformanceBook(
     // Page number (bold navy, right-aligned)
     const numW = fontBold.widthOfTextAtSize(pageNum, 9);
     pg.drawText(pageNum, {
-      x: width - MARGIN - numW,
+      x: width - 24 - numW,
       y: 18,
       size: 9,
       font: fontBold,
