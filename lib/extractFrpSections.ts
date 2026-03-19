@@ -120,14 +120,24 @@ export async function extractFrpPageInfo(file: File): Promise<FrpPageInfo[]> {
       (x < midX ? leftItems : rightItems).push({ str: item.str.trim(), y });
     }
 
-    // Right side: join all text top-to-bottom for the report title,
-    // then strip any trailing date (e.g. "Portfolio Summary December 31, 2025").
+    // Right side: group into visual lines (items within 3 pt share a line)
+    // and take only the first (topmost) line as the report title.
+    // This prevents subtitle text on aggregate pages from polluting the title.
+    const rightSorted = rightItems.sort((a, b) => b.y - a.y);
+    const rightLines: string[][] = [];
+    let rightCurrentLine: typeof rightSorted = [];
+    for (const item of rightSorted) {
+      if (rightCurrentLine.length === 0 || Math.abs(rightCurrentLine[0].y - item.y) <= 3) {
+        rightCurrentLine.push(item);
+      } else {
+        rightLines.push(rightCurrentLine.map((i) => i.str));
+        rightCurrentLine = [item];
+      }
+    }
+    if (rightCurrentLine.length) rightLines.push(rightCurrentLine.map((i) => i.str));
+
     const reportTitle = stripTrailingDate(
-      rightItems
-        .sort((a, b) => b.y - a.y)
-        .map((i) => i.str)
-        .join(" ")
-        .trim(),
+      (rightLines[0] ?? []).join(" ").trim(),
     ) || "—";
 
     // Left side: group into visual lines (items within 3 pt share a line).
