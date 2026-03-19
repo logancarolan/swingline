@@ -18,11 +18,12 @@ interface Props {
   onSetCover: (id: string) => void;
   onToggleFrp: (id: string) => void;
   onToggleSection: (sectionId: string) => void;
+  onRenameSection: (sectionId: string, field: "reportTitle" | "portfolioName", value: string) => void;
 }
 
 export default function PdfCard({
   pdf, index, isCover, isFrp, sections, isExtracting,
-  onRemove, onRename, onSetCover, onToggleFrp, onToggleSection,
+  onRemove, onRename, onSetCover, onToggleFrp, onToggleSection, onRenameSection,
 }: Props) {
   const [expanded, setExpanded] = useState(false);
   const hasSections = sections.length > 1;
@@ -159,14 +160,24 @@ export default function PdfCard({
                               </svg>
                             )}
                           </button>
-                          <div className={`min-w-0 ${section.enabled ? "" : "opacity-40"}`}>
-                            <p className="text-[10px] leading-tight font-medium text-stone-700 truncate">
-                              {section.reportTitle}
-                            </p>
-                            <p className="text-[9px] leading-tight text-stone-400 truncate">
-                              {section.portfolioName}
-                              <span className="ml-1 text-stone-300">· {pageCount}p</span>
-                            </p>
+                          <div className={`min-w-0 flex-1 ${section.enabled ? "" : "opacity-40"}`}>
+                            <input
+                              type="text"
+                              value={section.reportTitle}
+                              onChange={(e) => onRenameSection(section.id, "reportTitle", e.target.value)}
+                              className="w-full text-[10px] leading-tight font-medium text-stone-700 bg-transparent border-b border-transparent hover:border-stone-200 focus:border-blue-300 focus:outline-none truncate py-0"
+                              title={section.reportTitle}
+                            />
+                            <div className="flex items-center">
+                              <input
+                                type="text"
+                                value={section.portfolioName}
+                                onChange={(e) => onRenameSection(section.id, "portfolioName", e.target.value)}
+                                className="flex-1 min-w-0 text-[9px] leading-tight text-stone-400 bg-transparent border-b border-transparent hover:border-stone-200 focus:border-blue-300 focus:outline-none truncate py-0"
+                                title={section.portfolioName}
+                              />
+                              <span className="ml-1 text-[9px] text-stone-300 flex-shrink-0">· {pageCount}p</span>
+                            </div>
                           </div>
                         </li>
                       );

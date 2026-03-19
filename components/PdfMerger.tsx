@@ -238,6 +238,34 @@ export default function PdfMerger() {
     }));
   };
 
+  const renameFrpSection = (pdfId: string, sectionId: string, field: "reportTitle" | "portfolioName", value: string) => {
+    // Update the section display and capture the page range
+    setSectionsByPdf((prev) => {
+      const sections = prev[pdfId] ?? [];
+      const section = sections.find((s) => s.id === sectionId);
+      if (!section) return prev;
+
+      // Also update the underlying page-level extraction data so the ToC
+      // builder picks up the edited titles automatically.
+      setExtractions((prevEx) => {
+        const pages = prevEx[pdfId];
+        if (!pages) return prevEx;
+        const updated = [...pages];
+        for (let i = section.startIdx; i <= section.endIdx; i++) {
+          updated[i] = { ...updated[i], [field]: value };
+        }
+        return { ...prevEx, [pdfId]: updated };
+      });
+
+      return {
+        ...prev,
+        [pdfId]: sections.map((s) =>
+          s.id === sectionId ? { ...s, [field]: value } : s,
+        ),
+      };
+    });
+  };
+
   /** Converts "YYYY-MM-DD" → "December 31, 2025" */
   const formatPeriodDate = (raw: string): string => {
     if (!raw) return "";
@@ -498,6 +526,7 @@ export default function PdfMerger() {
                   onSetCover={handleSetCover}
                   onToggleFrp={handleToggleFrp}
                   onToggleSection={(sectionId) => toggleSection(pdf.id, sectionId)}
+                  onRenameSection={(sectionId, field, value) => renameFrpSection(pdf.id, sectionId, field, value)}
                 />
               ))}
 
